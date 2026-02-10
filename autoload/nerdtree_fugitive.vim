@@ -89,7 +89,7 @@ function! nerdtree_fugitive#path_filter(path) abort
 
     let l:absolute = nerdtree_fugitive#path_to_abs(a:path)
     if empty(l:absolute)
-      return 0
+      return 1
     endif
 
     let l:rel = nerdtree_fugitive#relpath(l:absolute)
@@ -107,33 +107,36 @@ function! nerdtree_fugitive#path_filter(path) abort
 
     return 1
   catch
-    " Never break NERDTree render due to plugin-specific filter issues.
-    return 0
+    " Be conservative: if we cannot evaluate a path, hide it.
+    return 1
   endtry
 endfunction
 
 function! nerdtree_fugitive#path_to_abs(path) abort
   if type(a:path) == v:t_string
-    return nerdtree_fugitive#normalize_path(a:path)
+    return nerdtree_fugitive#normalize_under_root(a:path)
   endif
 
-  if type(a:path) == v:t_dict
-    if has_key(a:path, 'str') && type(a:path.str) == v:t_func
-      try
-        return nerdtree_fugitive#normalize_path(call(a:path.str, [], a:path))
-      catch
-      endtry
-    endif
-    if has_key(a:path, '_str') && type(a:path._str) == v:t_func
-      try
-        return nerdtree_fugitive#normalize_path(call(a:path._str, [], a:path))
-      catch
-      endtry
-    endif
-    if has_key(a:path, 'path')
-      return nerdtree_fugitive#normalize_path(a:path.path)
-    endif
-  endif
+  " NERDTree path objects differ between versions; probe methods/fields safely.
+  try
+    return nerdtree_fugitive#normalize_under_root(a:path.str())
+  catch
+  endtry
+
+  try
+    return nerdtree_fugitive#normalize_under_root(a:path._str())
+  catch
+  endtry
+
+  try
+    return nerdtree_fugitive#normalize_under_root(a:path.path.str())
+  catch
+  endtry
+
+  try
+    return nerdtree_fugitive#normalize_under_root(a:path.path)
+  catch
+  endtry
 
   return ''
 endfunction
@@ -156,4 +159,16 @@ endfunction
 
 function! nerdtree_fugitive#normalize_path(path) abort
   return substitute(fnamemodify(a:path, ':p'), '/$', '', '')
+endfunction
+
+function! nerdtree_fugitive#normalize_under_root(path) abort
+  if empty(a:path)
+    return ''
+  endif
+
+  if a:path =~# '^/' || a:path =~# '^[A-Za-z]:[/\\]'
+    return nerdtree_fugitive#normalize_path(a:path)
+  endif
+
+  return nerdtree_fugitive#normalize_path(g:nerdtree_fugitive_root . '/' . a:path)
 endfunction
