@@ -1,0 +1,17 @@
+*nerdtree_fugitive.txt*  NERDTree + Fugitive integration plugin
+
+CONTENTS                                                    *nerdtree_fugitive-contents*
+
+1. Introduction............................................|nerdtree_fugitive-intro|
+2. Commands................................................|nerdtree_fugitive-commands|
+
+INTRODUCTION                                                *nerdtree_fugitive-intro*
+
+This plugin integrates NERDTree with git status information (via vim-fugitive
+auto-detection and git CLI fallback) so you can focus on changed files.
+
+COMMANDS                                                    *nerdtree_fugitive-commands*
+
+:NERDTreeModified
+    Opens NERDTree at the repository root and applies a NERDTree API path filter
+    that hides files/directories not part of the current working tree changes.
