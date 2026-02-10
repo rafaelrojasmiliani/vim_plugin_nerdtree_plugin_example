@@ -24,7 +24,7 @@ function! nerdtree_fugitive#repo_root() abort
   if exists('*FugitiveWorkTree')
     let l:root = FugitiveWorkTree()
     if !empty(l:root)
-      return fnamemodify(l:root, ':p:h')
+      return fnamemodify(l:root, ':p')
     endif
   endif
 
@@ -82,25 +82,34 @@ function! nerdtree_fugitive#register_filter_once() abort
 endfunction
 
 function! nerdtree_fugitive#path_filter(path) abort
-  let l:absolute = nerdtree_fugitive#path_to_abs(a:path)
-  if empty(l:absolute)
-    return 0
-  endif
+  try
+    if !exists('g:nerdtree_fugitive_modified') || !exists('g:nerdtree_fugitive_modified_dirs') || !exists('g:nerdtree_fugitive_root')
+      return 0
+    endif
 
-  let l:rel = nerdtree_fugitive#relpath(l:absolute)
-  if empty(l:rel)
-    return 0
-  endif
+    let l:absolute = nerdtree_fugitive#path_to_abs(a:path)
+    if empty(l:absolute)
+      return 0
+    endif
 
-  if has_key(g:nerdtree_fugitive_modified, l:rel)
-    return 0
-  endif
+    let l:rel = nerdtree_fugitive#relpath(l:absolute)
+    if empty(l:rel)
+      return 0
+    endif
 
-  if has_key(g:nerdtree_fugitive_modified_dirs, l:rel)
-    return 0
-  endif
+    if has_key(g:nerdtree_fugitive_modified, l:rel)
+      return 0
+    endif
 
-  return 1
+    if has_key(g:nerdtree_fugitive_modified_dirs, l:rel)
+      return 0
+    endif
+
+    return 1
+  catch
+    " Never break NERDTree render due to plugin-specific filter issues.
+    return 0
+  endtry
 endfunction
 
 function! nerdtree_fugitive#path_to_abs(path) abort
@@ -109,9 +118,15 @@ function! nerdtree_fugitive#path_to_abs(path) abort
   endif
 
   if type(a:path) == v:t_dict
-    if has_key(a:path, 'str')
+    if has_key(a:path, 'str') && type(a:path.str) == v:t_func
       try
-        return nerdtree_fugitive#normalize_path(a:path.str())
+        return nerdtree_fugitive#normalize_path(call(a:path.str, [], a:path))
+      catch
+      endtry
+    endif
+    if has_key(a:path, '_str') && type(a:path._str) == v:t_func
+      try
+        return nerdtree_fugitive#normalize_path(call(a:path._str, [], a:path))
       catch
       endtry
     endif
