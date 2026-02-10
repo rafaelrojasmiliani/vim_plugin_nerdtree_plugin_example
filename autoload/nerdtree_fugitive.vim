@@ -57,7 +57,11 @@ endfunction
 function! nerdtree_fugitive#track_path(path) abort
   let l:clean = substitute(a:path, '^"\|"$', '', 'g')
   let l:full = nerdtree_fugitive#normalize_path(g:nerdtree_fugitive_root . '/' . l:clean)
-  let l:rel = nerdtree_fugitive#relpath(l:full)
+  let l:rel = nerdtree_fugitive#canonical_rel(nerdtree_fugitive#relpath(l:full))
+
+  if empty(l:rel)
+    return
+  endif
 
   let g:nerdtree_fugitive_modified[l:rel] = 1
 
@@ -92,7 +96,7 @@ function! nerdtree_fugitive#path_filter(path) abort
       return 1
     endif
 
-    let l:rel = nerdtree_fugitive#relpath(l:absolute)
+    let l:rel = nerdtree_fugitive#canonical_rel(nerdtree_fugitive#relpath(l:absolute))
     if empty(l:rel)
       return 0
     endif
@@ -155,6 +159,18 @@ function! nerdtree_fugitive#relpath(absolute_path) abort
   endif
 
   return l:absolute
+endfunction
+
+function! nerdtree_fugitive#canonical_rel(path) abort
+  if empty(a:path)
+    return ''
+  endif
+
+  let l:path = substitute(a:path, '\\', '/', 'g')
+  let l:path = substitute(l:path, '^\./', '', '')
+  let l:path = substitute(l:path, '/$', '', '')
+
+  return l:path
 endfunction
 
 function! nerdtree_fugitive#normalize_path(path) abort
