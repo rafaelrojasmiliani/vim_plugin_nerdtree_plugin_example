@@ -109,11 +109,27 @@ function! nerdtree_fugitive#path_filter(path) abort
       return 0
     endif
 
+    if nerdtree_fugitive#has_modified_descendant(l:rel)
+      return 0
+    endif
+
     return 1
   catch
     " Be conservative: if we cannot evaluate a path, hide it.
     return 1
   endtry
+endfunction
+
+function! nerdtree_fugitive#has_modified_descendant(relpath) abort
+  let l:prefix = a:relpath . '/'
+
+  for l:path in keys(g:nerdtree_fugitive_modified)
+    if stridx(l:path, l:prefix) == 0
+      return 1
+    endif
+  endfor
+
+  return 0
 endfunction
 
 function! nerdtree_fugitive#path_to_abs(path) abort
@@ -158,7 +174,7 @@ function! nerdtree_fugitive#relpath(absolute_path) abort
     return strpart(l:absolute, strlen(l:prefix))
   endif
 
-  return l:absolute
+  return ''
 endfunction
 
 function! nerdtree_fugitive#canonical_rel(path) abort
